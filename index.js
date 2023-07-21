@@ -5,11 +5,15 @@ const {
   Collection,
   Events, 
   GatewayIntentBits,
+  REST, 
+  Routes, 
   SlashCommandBuilder,
 } = require('discord.js')
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms))
+const { Guilds, GuildMessages } = GatewayIntentBits
 
 try {
-  const client = new Client({ intents: [GatewayIntentBits.Guilds] })
+  const client = new Client({ intents: [Guilds, GuildMessages] })
   
   client.login(process.env.DISCORD_TOKEN_SECRET)
   client.once(Events.ClientReady, (c) => {
@@ -22,9 +26,38 @@ try {
       await interaction.reply('Pong!')
     },
   }
+  const pingSecretCommand = {
+    data: new SlashCommandBuilder().setName('secret').setDescription('Replies with Secret Pong!'),
+    async execute(interaction) {
+      await interaction.reply({ content: 'Secret Pong!', ephemeral: true })
+    },
+  }
+  const pingAgainCommand = {
+    data: new SlashCommandBuilder().setName('again').setDescription('Replies with Pong! and then Pong Again!'),
+    async execute(interaction) {
+      await interaction.reply('Pong!')
+      await sleep(2000)
+      await interaction.editReply('Pong again!')
+    },
+  }
 
   client.commands = new Collection()
+  client.commands.set(pingSecretCommand.data.name, pingSecretCommand)
+  client.commands.set(pingAgainCommand.data.name, pingAgainCommand)
   client.commands.set(pingCommand.data.name, pingCommand)
+  
+  const rest = new REST().setToken(process.env.DISCORD_TOKEN_SECRET)
+  const guildId = '1131699017898803391'
+  rest.put(
+    Routes.applicationGuildCommands(process.env.DISCORD_APPLICATION_ID, guildId),
+    { 
+      body: [
+        pingCommand.data,
+        pingSecretCommand.data,
+        pingAgainCommand.data,
+      ]
+    },
+  )
 
   client.on(Events.InteractionCreate, (interaction) => {
     if (!interaction.isChatInputCommand()) return
