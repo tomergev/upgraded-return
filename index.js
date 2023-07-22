@@ -96,7 +96,8 @@ try {
           .setRequired(true)
       )),
       async execute(interaction) {
-        
+        const prompt = interaction.options.getString('prompt')
+        await interaction.reply(`This was your prompt: ${prompt}`)
       },
   }
 
