@@ -10,10 +10,10 @@ const {
   SlashCommandBuilder,
 } = require('discord.js')
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms))
-const { Guilds, GuildMessages } = GatewayIntentBits
+const { Guilds, GuildMessages, MessageContent } = GatewayIntentBits
 
 try {
-  const client = new Client({ intents: [Guilds, GuildMessages] })
+  const client = new Client({ intents: [Guilds, GuildMessages, MessageContent] })
   
   client.login(process.env.DISCORD_TOKEN_SECRET)
   client.once(Events.ClientReady, (c) => {
@@ -23,7 +23,7 @@ try {
   const pingCommand = {
     data: new SlashCommandBuilder().setName('ping').setDescription('Replies with Pong!'),
     async execute(interaction) {
-      await interaction.reply('Pong!')
+      await interaction.reply('Pong!')      
     },
   }
   const pingSecretCommand = {
@@ -40,11 +40,74 @@ try {
       await interaction.editReply('Pong again!')
     },
   }
+  const choiceCommand = {
+    data: new SlashCommandBuilder()
+      .setName('choices')
+      .setDescription('Select A, B, or C')
+      .addStringOption((option) =>
+        option.setName('category')
+          .setDescription('A, B, or C')
+          .setRequired(true)
+          .addChoices(
+            { name: 'A', value: 'a' },
+            { name: 'B', value: 'b' },
+            { name: 'C', value: 'c' },
+          )
+      ),
+      async execute(interaction) {
+        const category = interaction.options.getString('category')
+        console.log(category)
+        await interaction.reply(`Category selected: ${category}`)
+      }
+  }
+  const subCommand = {
+    data: new SlashCommandBuilder()
+      .setName('subcommand')
+      .setDescription('Get info about a user or a server!')
+      .addSubcommand((subcommand) =>(
+        subcommand
+          .setName('user')
+          .setDescription('Info about a user')
+          .addUserOption(option => option.setName('target').setDescription('The user'))
+      ))
+      .addSubcommand((subcommand) =>(
+        subcommand
+          .setName('server')
+          .setDescription('Info about the server')
+      )),
+  }
+  const autoCompleteCommand = {
+    data: new SlashCommandBuilder()
+      .setName('autocomplete')
+      .setDescription('Search discordjs.guide!')
+      .addStringOption((option) =>
+        option.setName('query')
+          .setDescription('Phrase to search for')
+          .setAutocomplete(true)
+      )
+  }
+  const chatGptCommand = {
+    data: new SlashCommandBuilder()
+      .setName('chatgpt')
+      .setDescription('What would you like to know?')
+      .addStringOption((option) =>(
+        option.setName('prompt')
+          .setDescription('What would you like to ask me?')
+          .setRequired(true)
+      )),
+      async execute(interaction) {
+        
+      },
+  }
 
   client.commands = new Collection()
   client.commands.set(pingSecretCommand.data.name, pingSecretCommand)
   client.commands.set(pingAgainCommand.data.name, pingAgainCommand)
   client.commands.set(pingCommand.data.name, pingCommand)
+  client.commands.set(choiceCommand.data.name, choiceCommand)
+  client.commands.set(subCommand.data.name, subCommand)
+  client.commands.set(autoCompleteCommand.data.name, autoCompleteCommand)
+  client.commands.set(chatGptCommand.data.name, chatGptCommand)
   
   const rest = new REST().setToken(process.env.DISCORD_TOKEN_SECRET)
   const guildId = '1131699017898803391'
@@ -55,6 +118,9 @@ try {
         pingCommand.data,
         pingSecretCommand.data,
         pingAgainCommand.data,
+        choiceCommand.data,
+        autoCompleteCommand.data,
+        chatGptCommand.data,
       ]
     },
   )
